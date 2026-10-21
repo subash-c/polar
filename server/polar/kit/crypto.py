@@ -33,7 +33,9 @@ def generate_token(*, prefix: str = "") -> str:
 
 
 def _digest(token: str, secret: str) -> str:
-    hash = hmac.new(secret.encode("ascii"), token.encode("ascii"), hashlib.sha256)
+    # Real tokens are ASCII. UTF-8 leaves those digests unchanged, and a
+    # non-ASCII bearer token hashes and misses instead of raising.
+    hash = hmac.new(secret.encode("ascii"), token.encode("utf-8"), hashlib.sha256)
     return hash.hexdigest()
 
 

@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+
 import pytest
 from pydantic import ValidationError
 
@@ -25,6 +28,27 @@ def test_hash_is_a_bare_digest_without_a_current_secret(
     hash = get_token_hash("polar_at_xxx")
     assert len(hash) == 64
     assert get_token_hash_candidates("polar_at_xxx") == {None: hash}
+
+
+def test_ascii_token_hash_matches_the_historical_ascii_digest(
+    no_current_secret: None,
+) -> None:
+    token = "polar_at_xxx"
+    expected = hmac.new(
+        settings.SECRET.encode("ascii"),
+        token.encode("ascii"),
+        hashlib.sha256,
+    ).hexdigest()
+    assert get_token_hash(token) == expected
+
+
+def test_non_ascii_token_hashes_instead_of_raising(no_current_secret: None) -> None:
+    token = "polar_at_xxxé"
+    digest = get_token_hash(token)
+    assert len(digest) == 64
+    assert digest == get_token_hash(token)
+    assert get_token_hash_candidates(token) == {None: digest}
+    assert digest != get_token_hash("polar_at_xxx")
 
 
 def test_hash_carries_the_current_secret_id(current_secret: None) -> None:
